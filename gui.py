@@ -109,6 +109,7 @@ class MainWindow(QMainWindow):
 
         self.output_text = QTextEdit()
         self.output_text.setMinimumHeight(300)
+        self.output_text.setReadOnly(True)
         layout.addWidget(self.output_text)
 
         output_window.setLayout(layout)
