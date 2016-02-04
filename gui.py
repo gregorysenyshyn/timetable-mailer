@@ -160,7 +160,7 @@ class MailTimetablesThread(QThread):
         for page in self.reader.pages:
             msg = ttm.get_message(page,
                                   self.email_user,
-                                  self.email_pass,
+                                  self.subject,
                                   oen_re)
             smtp.send_message(msg)
 
