@@ -11,7 +11,7 @@ PDF_FILE = ''
 EMAIL_USER = ''
 EMAIL_PASS = ''
 EMAIL_SUBJECT = ''
-
+NO_REPLY = True
 
 def strip_punctuation(full_name):
     things_to_remove = ["'"]
@@ -38,7 +38,7 @@ def get_smtp(user, password):
     return smtp
 
 
-def get_message(page, email_user, subject, oen_re):
+def get_message(page, email_user, subject, oen_re, no_reply):
     text = page.extractText()
     match = oen_re.search(text)
     if match:
@@ -56,7 +56,10 @@ def get_message(page, email_user, subject, oen_re):
 
         msg = MIMEMultipart()
         msg['To'] = email_address
-        msg['From'] = email_user
+        if no_reply:
+            msg['From'] = 'No Reply'
+        else:
+            msg['From'] = email_user
         msg['Subject'] = subject
         msg.attach(MIMEApplication(pdf_io.read(), _subtype='PDF'))
 
@@ -69,7 +72,8 @@ def main():
         oen_re = get_oen_re()
         smtp = get_smtp(USER_EMAIL, USER_PASS)
         for page in reader.pages:
-            msg = get_message(page, EMAIL_USER, EMAIL_SUBJECT, oen_re)
+            msg = get_message(page, EMAIL_USER,
+                              EMAIL_SUBJECT, oen_re, NO_REPLY)
             smtp.send_message(msg)
             print('Sent email to: '.format(msg['To']))
             time.sleep(2)

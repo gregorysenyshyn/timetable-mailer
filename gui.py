@@ -10,6 +10,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QCheckBox
 from PyQt5.QtWidgets import QLineEdit
 from PyQt5.QtWidgets import QTextEdit
 from PyQt5.QtWidgets import QMainWindow
@@ -59,8 +60,13 @@ class MainWindow(QMainWindow):
         email_input_label = QLabel('Your UGCloud Email: ')
         self.email_input = QLineEdit()
         self.email_input.setText('jdoe@ugcloud.ca')
+        self.no_reply_label = QLabel('No Reply')
+        self.no_reply = QCheckBox()
+        self.no_reply.setChecked(True)
         self.mail_row.addWidget(email_input_label)
         self.mail_row.addWidget(self.email_input)
+        self.mail_row.addWidget(self.no_reply_label)
+        self.mail_row.addWidget(self.no_reply)
         self.layout.addLayout(self.mail_row)
 
         self.password_row = QHBoxLayout()
@@ -129,6 +135,7 @@ class MainWindow(QMainWindow):
         email_user = self.email_input.text()
         email_pass = self.password_input.text()
         subject = self.subject_input.text()
+        no_reply = self.no_reply.isChecked()
         with open(pdf_file, 'rb') as f:
             pdf_io = io.BytesIO(f.read())
             reader = PdfFileReader(pdf_io)
@@ -137,6 +144,7 @@ class MainWindow(QMainWindow):
                                                    email_user,
                                                    email_pass,
                                                    subject,
+                                                   no_reply,
                                                    self.communicate)
             self.communicate.mailed.connect(self.update_output)
             self.get_thread.finished.connect(self.finished)
@@ -147,12 +155,14 @@ class MainWindow(QMainWindow):
 
 class MailTimetablesThread(QThread):
 
-    def __init__(self, reader, email_user, email_pass, subject, communicate):
+    def __init__(self, reader, email_user,
+                 email_pass, subject, no_reply, communicate):
         QThread.__init__(self)
         self.reader = reader
         self.email_user = email_user
         self.email_pass = email_pass
         self.subject = subject
+        self.no_reply = no_reply
         self.communicate = communicate
 
     def run(self):
@@ -162,7 +172,8 @@ class MailTimetablesThread(QThread):
             msg = ttm.get_message(page,
                                   self.email_user,
                                   self.subject,
-                                  oen_re)
+                                  oen_re,
+                                  self.no_reply)
             smtp.send_message(msg)
 
             self.communicate.mailed.emit(msg['To'])
@@ -176,15 +187,9 @@ if __name__ == '__main__':
     app = MainWindow()
 
     msg_box = QMessageBox()
-    msg_box.setText(' '.join(['Remember to ENABLE access for',
-                              '"less secure devices" in your',
-                              'Gmail settings!']))
+    msg_box.setText(" ".join(["Remember to use the students' 'given names'",
+                              "when generating lists in Maplewood"]))
     msg_box.exec_()
 
     app.show()
     qt_app.exec_()
-
-    msg_box.setText(' '.join(['Remember to DISABLE access for',
-                              '"less secure devices" in your',
-                              'Gmail settings!']))
-    msg_box.exec_()
