@@ -85,6 +85,18 @@ class MainWindow(QMainWindow):
         self.subject_row.addWidget(self.subject_input)
         self.layout.addLayout(self.subject_row)
 
+        self.message_label_row = QHBoxLayout()
+        self.message_input_label = QLabel('Message')
+        self.message_label_row.addWidget(self.message_input_label)
+        self.layout.addLayout(self.message_label_row)
+
+        self.message_input_row = QHBoxLayout()
+        self.message_input = QTextEdit()
+        self.message_input.setText(' '.join(['Please find your timetable',
+                                             'attached to this email']))
+        self.message_input_row.addWidget(self.message_input)
+        self.layout.addLayout(self.message_input_row)
+
         self.go_row = QHBoxLayout()
         go_button = QPushButton('Send Timetables')
         go_button.clicked.connect(self.mail_timetables)
@@ -135,6 +147,7 @@ class MainWindow(QMainWindow):
         email_user = self.email_input.text()
         email_pass = self.password_input.text()
         subject = self.subject_input.text()
+        body = self.message_input.text()
         no_reply = self.no_reply.isChecked()
         with open(pdf_file, 'rb') as f:
             pdf_io = io.BytesIO(f.read())
@@ -145,7 +158,8 @@ class MainWindow(QMainWindow):
                                                    email_pass,
                                                    subject,
                                                    no_reply,
-                                                   self.communicate)
+                                                   self.communicate,
+                                                   body)
             self.communicate.mailed.connect(self.update_output)
             self.get_thread.finished.connect(self.finished)
             self.output_text.insertPlainText(
@@ -156,7 +170,7 @@ class MainWindow(QMainWindow):
 class MailTimetablesThread(QThread):
 
     def __init__(self, reader, email_user,
-                 email_pass, subject, no_reply, communicate):
+                 email_pass, subject, no_reply, communicate, body):
         QThread.__init__(self)
         self.reader = reader
         self.email_user = email_user
@@ -164,6 +178,7 @@ class MailTimetablesThread(QThread):
         self.subject = subject
         self.no_reply = no_reply
         self.communicate = communicate
+        self.body = body
 
     def run(self):
         oen_re = ttm.get_oen_re()
@@ -173,7 +188,8 @@ class MailTimetablesThread(QThread):
                                   self.email_user,
                                   self.subject,
                                   oen_re,
-                                  self.no_reply)
+                                  self.no_reply,
+                                  self.body)
             smtp.send_message(msg)
 
             self.communicate.mailed.emit(msg['To'])
