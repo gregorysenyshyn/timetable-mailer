@@ -4,6 +4,7 @@ import time
 from smtplib import SMTP_SSL
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 
 import PyPDF2
 
@@ -11,6 +12,7 @@ PDF_FILE = ''
 EMAIL_USER = ''
 EMAIL_PASS = ''
 EMAIL_SUBJECT = ''
+EMAIL_BODY = ''
 NO_REPLY = True
 
 def strip_punctuation(full_name):
@@ -38,7 +40,7 @@ def get_smtp(user, password):
     return smtp
 
 
-def get_message(page, email_user, subject, oen_re, no_reply):
+def get_message(page, email_user, subject, oen_re, no_reply, body=None):
     text = page.extractText()
     match = oen_re.search(text)
     if match:
@@ -58,9 +60,12 @@ def get_message(page, email_user, subject, oen_re, no_reply):
         msg['To'] = email_address
         if no_reply:
             msg['From'] = 'No Reply'
+            msg['reply-to'] = 'NO REPLY'
         else:
             msg['From'] = email_user
         msg['Subject'] = subject
+        if body is not None:
+            msg.attach(MIMEText(body))
         msg.attach(MIMEApplication(pdf_io.read(), _subtype='PDF'))
 
         return msg
@@ -73,7 +78,7 @@ def main():
         smtp = get_smtp(USER_EMAIL, USER_PASS)
         for page in reader.pages:
             msg = get_message(page, EMAIL_USER,
-                              EMAIL_SUBJECT, oen_re, NO_REPLY)
+                              EMAIL_SUBJECT, oen_re, NO_REPLY, EMAIL_BODY)
             smtp.send_message(msg)
             print('Sent email to: '.format(msg['To']))
             time.sleep(2)
