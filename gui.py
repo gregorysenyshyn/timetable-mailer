@@ -147,8 +147,7 @@ class MainWindow(QMainWindow):
         email_user = self.email_input.text()
         email_pass = self.password_input.text()
         subject = self.subject_input.text()
-        body = self.message_input.text()
-        no_reply = self.no_reply.isChecked()
+        body = self.message_input.toPlainText()
         with open(pdf_file, 'rb') as f:
             pdf_io = io.BytesIO(f.read())
             reader = PdfFileReader(pdf_io)
