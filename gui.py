@@ -60,13 +60,8 @@ class MainWindow(QMainWindow):
         email_input_label = QLabel('Your UGCloud Email: ')
         self.email_input = QLineEdit()
         self.email_input.setText('jdoe@ugcloud.ca')
-        self.no_reply_label = QLabel('No Reply')
-        self.no_reply = QCheckBox()
-        self.no_reply.setChecked(True)
         self.mail_row.addWidget(email_input_label)
         self.mail_row.addWidget(self.email_input)
-        self.mail_row.addWidget(self.no_reply_label)
-        self.mail_row.addWidget(self.no_reply)
         self.layout.addLayout(self.mail_row)
 
         self.password_row = QHBoxLayout()
@@ -169,13 +164,12 @@ class MainWindow(QMainWindow):
 class MailTimetablesThread(QThread):
 
     def __init__(self, reader, email_user,
-                 email_pass, subject, no_reply, communicate, body):
+                 email_pass, subject, communicate, body):
         QThread.__init__(self)
         self.reader = reader
         self.email_user = email_user
         self.email_pass = email_pass
         self.subject = subject
-        self.no_reply = no_reply
         self.communicate = communicate
         self.body = body
 
@@ -187,7 +181,6 @@ class MailTimetablesThread(QThread):
                                   self.email_user,
                                   self.subject,
                                   oen_re,
-                                  self.no_reply,
                                   self.body)
             smtp.send_message(msg)
 
