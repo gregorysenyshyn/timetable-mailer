@@ -151,7 +151,6 @@ class MainWindow(QMainWindow):
                                                    email_user,
                                                    email_pass,
                                                    subject,
-                                                   no_reply,
                                                    self.communicate,
                                                    body)
             self.communicate.mailed.connect(self.update_output)
