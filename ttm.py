@@ -15,7 +15,7 @@ EMAIL_SUBJECT = ''
 EMAIL_BODY = ''
 
 def strip_punctuation(full_name):
-    things_to_remove = ["'", " ", "-"]
+    things_to_remove = ["'", " ", "-","."]
     for thing in things_to_remove:
         full_name = full_name.replace(thing, "")
     return full_name
