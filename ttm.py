@@ -1,84 +1,106 @@
+import os
 import re
 import io
-import time
-from smtplib import SMTP_SSL
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.mime.text import MIMEText
+import sys
+import argparse
 
 import PyPDF2
 
-PDF_FILE = ''
-EMAIL_USER = ''
-EMAIL_PASS = ''
-EMAIL_SUBJECT = ''
-EMAIL_BODY = ''
 
 def strip_punctuation(full_name):
-    things_to_remove = ["'", " ", "-","."]
+    things_to_remove = ["'", "-", ".", " "]
     for thing in things_to_remove:
         full_name = full_name.replace(thing, "")
     return full_name
 
 
-def get_email_address(oen, full_name):
-    full_name = strip_punctuation(full_name)
-    last_name, first_name = full_name.split(',')
-    return '{0}{1}{2}@ugcloud.ca'.format(first_name.strip().capitalize()[:2],
-                                         last_name.strip().capitalize()[:3],
-                                         oen.replace('-', '')[5:])
-
-
 def get_oen_re():
-    return re.compile('OEN Number: .*[0-9]{3}-[0-9]{3}-[0-9]{3}')
+    return re.compile('OEN Number: +[0-9]{3}-[0-9]{3}-[0-9]{3}')
 
 
-def get_smtp(user, password):
-    smtp = SMTP_SSL('smtp.gmail.com:465')
-    smtp.login(user, password)
-    return smtp
+def get_ugcloud_re():
+    return re.compile('^[a-zA-Z]{5}[0-9]{4}$')
 
 
-def get_message(page, email_user, subject, oen_re, body=None):
-    text = page.extractText()
-    match = oen_re.search(text)
-    if match:
+def get_username(text, oen_match):
+    oen = text[oen_match.start()+11:oen_match.end()].strip()
+    full_name = strip_punctuation(text[35:oen_match.start()].strip())
+    last_name, first_name = full_name.split(',')
+    return '{0}{1}{2}'.format(first_name.strip().capitalize()[:2],
+                              last_name.strip().capitalize()[:3],
+                              oen.replace('-', '')[5:])
+
+def close_document(writer, output_dir, current_ugcloud):
+    outfile = f"{current_ugcloud}.pdf"
+    outpath = os.path.join(output_dir, outfile)
+    with open(outpath, "wb") as f:
+        writer.write(f)
+        print(f"  Done!")
+    return PyPDF2.PdfFileWriter()
+
+
+def file_checker(args, value_type, message):
+    if vars(args)[value_type] is not None: 
+        if os.path.exists(vars(args)[value_type]):
+            return vars(args)[value_type]
+    else:
+        value = None
+    while not value:
+        value = input(f"{message} location: ").strip()
+        if os.path.exists(value):
+            return value
+        else:
+            print(f"{value} is not a valid location")
+            value = None
+
+def main(filename, output_dir):
+
+    oen_re = get_oen_re()
+    ugcloud_re = get_ugcloud_re()
+
+    reader = None
+    with open(filename, 'rb') as f:
+        reader = PyPDF2.PdfFileReader(f)
 
         writer = PyPDF2.PdfFileWriter()
-        writer.addPage(page)
-        pdf_io = io.BytesIO()
-        writer.write(pdf_io)
-        pdf_io.seek(0)
+        current_ugcloud = None
+        new_document = True
 
-        oen = text[match.start()+11:match.end()].strip()
-        full_name = text[35:match.start()].strip()
-        full_name = strip_punctuation(full_name)
-        email_address = get_email_address(oen, full_name)
-
-        msg = MIMEMultipart()
-        msg['To'] = email_address
-        msg['From'] = email_user
-        msg['Subject'] = subject
-        if body is not None:
-            msg.attach(MIMEText(body))
-        msg.attach(MIMEApplication(pdf_io.read(), _subtype='PDF'))
-
-        return msg
-
-
-def main():
-    with open(PDF_FILE, 'rb') as f:
-        reader = PyPDF2.PdfFileReader(f)
-        oen_re = get_oen_re()
-        smtp = get_smtp(USER_EMAIL, USER_PASS)
+        print("processing pages...\n")
         for page in reader.pages:
-            msg = get_message(page, EMAIL_USER,
-                              EMAIL_SUBJECT, oen_re, EMAIL_BODY)
-            smtp.send_message(msg)
-            print('Sent email to: '.format(msg['To']))
-            time.sleep(2)
-        smtp.close()
+            text = page.extractText()
+            oen = oen_re.search(text)
+            if oen:
+                email_address = get_username(text, oen)
+                ugcloud = ugcloud_re.search(email_address)
+                print(f"processing {email_address}...", end="")
 
+                if not ugcloud:
+                    print(f"{email_address} is not a valid UGCloud address")
+                    
+                if new_document:
+                    current_ugcloud = email_address
+                else:
+                    writer = close_document(writer,
+                                            output_dir,
+                                            current_ugcloud)
+                    new_document = True
+                    current_ugcloud = email_address
+                writer.addPage(page)
+                new_document = False
+
+            else:
+                writer.addPage(page)
+        close_document(writer, output_dir, current_ugcloud)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=("Take a Maplewood timetable "
+        "pdf and split it into individual files named with a student's ugcloud"
+        " user name"))
+    parser.add_argument("-f", "--filename", dest="filename")
+    parser.add_argument("-o", "--output", dest="output")
+    args = parser.parse_args()
+    filename = file_checker(args, "filename", "Maplewood Timetable")
+    output = file_checker(args, "output", "Output")
+
+    main(filename, output)
