@@ -45,13 +45,13 @@ def file_checker(args, value_type, message):
             return vars(args)[value_type]
     else:
         value = None
-    while not value:
-        value = input(f"{message} location: ").strip()
-        if os.path.exists(value):
-            return value
-        else:
-            print(f"{value} is not a valid location")
-            value = None
+        while not value:
+            value = input(f"{message} location: ").strip()
+            if os.path.exists(value):
+                return value
+            else:
+                print(f"{value} is not a valid location")
+                value = None
 
 def main(filename, output_dir):
 
