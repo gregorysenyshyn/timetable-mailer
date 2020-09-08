@@ -14,6 +14,10 @@ def strip_punctuation(full_name):
     return full_name
 
 
+def get_covid_re():
+    return re.compile('Student Name:[a-zA-Z,].+[0-9]{3}-[0-9]{3}-[0-9]{3}')
+
+
 def get_oen_re():
     return re.compile('OEN Number: +[0-9]{3}-[0-9]{3}-[0-9]{3}')
 
@@ -55,7 +59,7 @@ def file_checker(args, value_type, message):
 
 def main(filename, output_dir):
 
-    oen_re = get_oen_re()
+    ugc_data_re = get_covid_re()
     ugcloud_re = get_ugcloud_re()
 
     reader = None
@@ -69,9 +73,14 @@ def main(filename, output_dir):
         print("processing pages...\n")
         for page in reader.pages:
             text = page.extractText()
-            oen = oen_re.search(text)
-            if oen:
-                email_address = get_username(text, oen)
+            ugc_data = ugc_data_re.search(text)
+            if ugc_data:
+                all_data = ugc_data.group(0)
+                oen = re.sub('-','',all_data[-11:])
+                reverse_name = strip_punctuation(all_data[13:-11])
+                name = reverse_name.split(',')
+                email_address = f'{name[1][:2]}{name[0][:3]}{oen[-4:]}'
+
                 ugcloud = ugcloud_re.search(email_address)
                 print(f"processing {email_address}...", end="")
 
