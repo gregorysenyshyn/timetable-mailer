@@ -63,6 +63,7 @@ def main(filename, output_dir):
     ugcloud_re = get_ugcloud_re()
 
     reader = None
+    count = 0
     with open(filename, 'rb') as f:
         reader = PyPDF2.PdfFileReader(f)
 
@@ -70,11 +71,12 @@ def main(filename, output_dir):
         current_ugcloud = None
         new_document = True
 
-        print("processing pages...\n")
+        print("processing pages...")
         for page in reader.pages:
             text = page.extractText()
             ugc_data = ugc_data_re.search(text)
             if ugc_data:
+                count += 1
                 all_data = ugc_data.group(0)
                 oen = re.sub('-','',all_data[-11:])
                 reverse_name = strip_punctuation(all_data[13:-11])
@@ -82,25 +84,21 @@ def main(filename, output_dir):
                 email_address = f'{name[1][:2]}{name[0][:3]}{oen[-4:]}'
 
                 ugcloud = ugcloud_re.search(email_address)
-                print(f"processing {email_address}...", end="")
-
                 if not ugcloud:
                     print(f"{email_address} is not a valid UGCloud address")
                     
                 if new_document:
                     current_ugcloud = email_address
+                    new_document = False
                 else:
                     writer = close_document(writer,
                                             output_dir,
                                             current_ugcloud)
-                    new_document = True
                     current_ugcloud = email_address
-                writer.addPage(page)
-                new_document = False
-
-            else:
-                writer.addPage(page)
-        close_document(writer, output_dir, current_ugcloud)
+                print(f"processing {current_ugcloud}...", end="")
+            writer.addPage(page)
+        writer = close_document(writer, output_dir, current_ugcloud)
+        print(f'{count} documents processed')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=("Take a Maplewood timetable "
