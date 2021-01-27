@@ -1,7 +1,5 @@
 import os
 import re
-import io
-import sys
 import argparse
 
 import PyPDF2
@@ -30,6 +28,7 @@ def get_username(text, oen_match):
                               last_name.strip().capitalize()[:3],
                               oen.replace('-', '')[5:])
 
+
 def close_document(writer, output_dir, current_ugcloud):
     outfile = f"{current_ugcloud}.pdf"
     outpath = os.path.join(output_dir, outfile)
@@ -40,7 +39,7 @@ def close_document(writer, output_dir, current_ugcloud):
 
 
 def file_checker(args, value_type, message):
-    if vars(args)[value_type] is not None: 
+    if vars(args)[value_type] is not None:
         if os.path.exists(vars(args)[value_type]):
             return vars(args)[value_type]
     else:
@@ -52,6 +51,7 @@ def file_checker(args, value_type, message):
             else:
                 print(f"{value} is not a valid location")
                 value = None
+
 
 def main(filename, output_dir):
 
@@ -77,7 +77,7 @@ def main(filename, output_dir):
 
                 if not ugcloud:
                     print(f"{email_address} is not a valid UGCloud address")
-                    
+
                 if new_document:
                     current_ugcloud = email_address
                 else:
@@ -93,10 +93,13 @@ def main(filename, output_dir):
                 writer.addPage(page)
         close_document(writer, output_dir, current_ugcloud)
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=("Take a Maplewood timetable "
-        "pdf and split it into individual files named with a student's ugcloud"
-        " user name"))
+    parser = argparse.ArgumentParser(
+                        description=("Take a Maplewood timetable pdf "
+                                     "and split it into individual files "
+                                     " named with a student's ugcloud"
+                                     " user name"))
     parser.add_argument("-f", "--filename", dest="filename")
     parser.add_argument("-o", "--output", dest="output")
     args = parser.parse_args()
